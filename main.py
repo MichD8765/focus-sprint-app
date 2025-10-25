@@ -1,51 +1,92 @@
 import streamlit as st
 
-# ---------------------------
-# BASIC APP SETTINGS
-# ---------------------------
 st.set_page_config(
     page_title="Focus Sprint Planner",
     page_icon="✅",
     layout="wide",
 )
 
-# ---------------------------
-# ACCESS CONTROL
-# ---------------------------
+# ---------------------------------
+# 1. LICENSE KEYS YOU'VE ISSUED
+# ---------------------------------
+# Format:
+# "CODE": {"active": True, "note": "who this was sold to"}
+#
+# - active = False means you've revoked it
+# - note is optional, it's just for you to remember who bought it
+#
+VALID_KEYS = {
+    "GX7R-PL9F-23KQ": {"active": True,  "note": "Buyer #1 from Gumroad"},
+    "M11A-B82C-Z5Q9": {"active": True,  "note": "VIP early supporter"},
+    "TEST-TEST-TEST": {"active": False, "note": "Refunded"},
+}
 
-APP_PASSWORD = "rose-47-dollar"  # <-- CHANGE THIS before sharing
 
-# We use session_state so user doesn't have to re-enter on every rerun
+# ---------------------------------
+# 2. AUTH STATE
+# ---------------------------------
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
+if "license_code" not in st.session_state:
+    st.session_state.license_code = None
 
+
+# ---------------------------------
+# 3. LOGIN / LICENSE CHECK
+# ---------------------------------
 def login_screen():
     st.title("Private Access")
-    st.write("This tool is only available to paying members.")
+    st.write("Enter your personal access code to continue.")
 
-    pw_input = st.text_input("Enter your access code:", type="password")
+    code_input = st.text_input(
+        "Your access code (check your purchase email):",
+        placeholder="e.g. GX7R-PL9F-23KQ",
+    )
 
-    # nice touch: let user press Enter instead of button
     unlock_clicked = st.button("Unlock")
 
     if unlock_clicked:
-        if pw_input == APP_PASSWORD:
-            st.session_state.authenticated = True
-            st.success("Access granted.")
+        code_input_clean = code_input.strip()
+
+        # Check if code exists
+        if code_input_clean in VALID_KEYS:
+            license_info = VALID_KEYS[code_input_clean]
+
+            if license_info.get("active", False):
+                # ✅ Access granted
+                st.session_state.authenticated = True
+                st.session_state.license_code = code_input_clean
+                st.success("Access granted. Welcome!")
+            else:
+                # Code found but disabled
+                st.error("This code is no longer active. Please contact support.")
         else:
+            # Code not found at all
             st.error("Invalid code. Please check the email you received after purchase.")
 
-    # If not authenticated yet, stop the app here
+    # If still not authenticated, stop the app here
     if not st.session_state.authenticated:
         st.stop()
 
-# show login if not logged in yet
+
 login_screen()
 
 
-# ---------------------------
-# YOUR REAL APP STARTS HERE
-# ---------------------------
+# ---------------------------------
+# 4. (OPTIONAL) TOP BAR INFO FOR YOU
+# ---------------------------------
+with st.sidebar:
+    st.markdown("### Access Status")
+    st.write("You are logged in with:")
+    st.code(st.session_state.license_code or "Unknown")
+
+    # You can show a tiny message to the user here:
+    st.info("This tool is licensed for personal use only. Thank you for supporting early builds 💛")
+
+
+# ---------------------------------
+# 5. THE ACTUAL APP UI
+# ---------------------------------
 
 st.title("Focus Sprint Planner")
 st.caption("Plan your next 25-minute push and get unstuck fast.")
